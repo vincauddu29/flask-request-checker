@@ -9,9 +9,8 @@ from .Path import Path
 
 
 class RequestChecker:
-    def __init__(self, app, log=None):
+    def __init__(self, app):
         self.__paths: List[Path] = list()
-        self.__log = log
         if type(app) == Api:
             self.__app: Flask = app.app
             self.__api: Api = app
@@ -45,8 +44,6 @@ class RequestChecker:
                 try:
                     flask_jwt_extended.verify_jwt_in_request()
                 except Exception as e:
-                    if self.__log is not None:
-                        self.__log.error('__checkPath', e)
                     abort(403)
         else:
             abort(404)
