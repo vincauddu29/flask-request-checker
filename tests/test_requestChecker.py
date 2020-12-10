@@ -2,8 +2,7 @@ from unittest import TestCase
 from flask import Flask
 from flask_jwt_extended import (
     jwt_manager,
-    create_access_token,
-    create_refresh_token
+    create_access_token
 )
 from flask_restful import Api, Resource
 from ..src.requestChecker import (
