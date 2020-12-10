@@ -1,5 +1,5 @@
 from typing import List
-from flask_jwt_extended import JWTManager
+from flask_jwt_extended import JWTManager, verify_jwt_in_request
 from werkzeug.exceptions import abort
 from flask import Flask, request
 from flask_restful import Api, Resource
@@ -44,8 +44,9 @@ class RequestChecker:
         if found:
             if policy == SecurityPolicyEnum.JWT:
                 try:
-                    self.__jwtManager.verify_jwt_in_request()
-                except Exception:
+                    verify_jwt_in_request()
+                except Exception as e:
+                    print(e)
                     abort(403)
         else:
             abort(404)
