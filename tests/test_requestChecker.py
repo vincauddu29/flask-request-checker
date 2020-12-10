@@ -43,7 +43,7 @@ class RequestCheckerTest(TestCase):
 
         path = Path('/test')
 
-        requestChecker.addPath(Resource, path)
+        requestChecker.addPath(path, Resource)
 
         assert len(requestChecker.getPaths()) == 1
         assert requestChecker.getPaths()[0] == path
@@ -59,25 +59,25 @@ class RequestCheckerTest(TestCase):
         requestChecker = RequestChecker(api)
 
         path = Path('/test')
-        requestChecker.addPath(Resource, path)
-        requestChecker.addPath(Resource, path)
+        requestChecker.addPath(path, Resource)
+        requestChecker.addPath(path, Resource)
 
         assert len(requestChecker.getPaths()) == 1
 
-    def test_checkRequestAnnonymous(self):
+    def test_JWTcheckRequestAnnonymous(self):
         app = Flask("test")
         api = Api(app)
         requestChecker = RequestChecker(api)
 
         path = Path('/test')
 
-        requestChecker.addPath(MyResource, path)
+        requestChecker.addPath(path, MyResource)
 
         with app.test_client() as client:
             rv = client.get('/test')
             assert rv.status_code == 200
 
-    def test_checkRequestNotFound(self):
+    def test_JWTcheckRequestNotFound(self):
         app = Flask("test")
         api = Api(app)
         RequestChecker(api)
@@ -88,7 +88,7 @@ class RequestCheckerTest(TestCase):
             rv = client.get('/test')
             assert rv.status_code == 404
 
-    def test_checkRequestJWTMissing(self):
+    def test_JWTcheckRequestJWTMissing(self):
         app = Flask("test")
         app.config['JWT_SECRET_KEY'] = "change_me_jwt"
         app.config['JWT_TOKEN_LOCATION'] = 'headers'
@@ -99,7 +99,7 @@ class RequestCheckerTest(TestCase):
 
         path = Path('/test', policy=SecurityPolicyEnum.JWT)
 
-        requestChecker.addPath(MyResource, path)
+        requestChecker.addPath(path, MyResource)
 
         with app.test_client() as client:
             rv = client.get('/test')

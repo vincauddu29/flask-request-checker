@@ -1,11 +1,12 @@
 from typing import List
-import flask_jwt_extended
+from flask_jwt_extended import JWTManager
 from werkzeug.exceptions import abort
 from flask import Flask, request
 from flask_restful import Api, Resource
 from .MethodsEnum import MethodsEnum
 from .SecurityPolicyEnum import SecurityPolicyEnum
 from .Path import Path
+from flask_login import current_user, AnonymousUserMixin, LoginManager
 
 
 class RequestChecker:
@@ -19,6 +20,8 @@ class RequestChecker:
             self.__api: Api = None
         else:
             raise Exception("app is not an Api or a Flask object")
+
+        self.__jwtManager = JWTManager(self.__app)
 
         if self.__app is not None:
             self.__app.before_request(self.__checkPath)
@@ -42,7 +45,7 @@ class RequestChecker:
         if found:
             if policy == SecurityPolicyEnum.JWT:
                 try:
-                    flask_jwt_extended.verify_jwt_in_request()
+                    self.__jwtManager.verify_jwt_in_request()
                 except Exception as e:
                     abort(403)
         else:
@@ -57,8 +60,11 @@ class RequestChecker:
     def getPaths(self) -> List[Path]:
         return self.__paths
 
-    def addPath(self, resource: Resource, path: Path):
+    def addPath(self, path: Path, resource: Resource = None):
         if path not in self.__paths:
             self.__paths.append(path)
             if self.__api is not None:
                 self.__api.add_resource(resource, path.getUrl())
+
+    def getJwtManager(self):
+        return self.__jwtManager
