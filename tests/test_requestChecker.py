@@ -1,7 +1,15 @@
 from unittest import TestCase
 from flask import Flask
+from flask_jwt_extended import (
+    jwt_manager,
+    create_access_token
+)
 from flask_restful import Api, Resource
-from ..src.requestChecker import RequestChecker, Path, SecurityPolicyEnum
+from ..src.requestChecker import (
+    RequestChecker,
+    Path,
+    SecurityPolicyEnum
+)
 
 
 class MyResource(Resource):
@@ -43,7 +51,7 @@ class RequestCheckerTest(TestCase):
 
         path = Path('/test')
 
-        requestChecker.addPath(Resource, path)
+        requestChecker.addPath(path, Resource)
 
         assert len(requestChecker.getPaths()) == 1
         assert requestChecker.getPaths()[0] == path
@@ -59,25 +67,25 @@ class RequestCheckerTest(TestCase):
         requestChecker = RequestChecker(api)
 
         path = Path('/test')
-        requestChecker.addPath(Resource, path)
-        requestChecker.addPath(Resource, path)
+        requestChecker.addPath(path, Resource)
+        requestChecker.addPath(path, Resource)
 
         assert len(requestChecker.getPaths()) == 1
 
-    def test_checkRequestAnnonymous(self):
+    def test_JWTcheckRequestAnnonymous(self):
         app = Flask("test")
         api = Api(app)
         requestChecker = RequestChecker(api)
 
         path = Path('/test')
 
-        requestChecker.addPath(MyResource, path)
+        requestChecker.addPath(path, MyResource)
 
         with app.test_client() as client:
             rv = client.get('/test')
             assert rv.status_code == 200
 
-    def test_checkRequestNotFound(self):
+    def test_JWTcheckRequestNotFound(self):
         app = Flask("test")
         api = Api(app)
         RequestChecker(api)
@@ -88,7 +96,7 @@ class RequestCheckerTest(TestCase):
             rv = client.get('/test')
             assert rv.status_code == 404
 
-    def test_checkRequestJWTMissing(self):
+    def test_JWTcheckRequestJWTMissing(self):
         app = Flask("test")
         app.config['JWT_SECRET_KEY'] = "change_me_jwt"
         app.config['JWT_TOKEN_LOCATION'] = 'headers'
@@ -99,8 +107,63 @@ class RequestCheckerTest(TestCase):
 
         path = Path('/test', policy=SecurityPolicyEnum.JWT)
 
-        requestChecker.addPath(MyResource, path)
+        requestChecker.addPath(path, MyResource)
 
         with app.test_client() as client:
             rv = client.get('/test')
+            assert rv.status_code == 403
+
+    def test_getJwtManager(self):
+        app = Flask("test")
+        app.config['JWT_SECRET_KEY'] = "change_me_jwt"
+        app.config['JWT_TOKEN_LOCATION'] = 'headers'
+        app.config['JWT_HEADER_NAME'] = 'Authorization'
+        app.config['JWT_HEADER_TYPE'] = 'Bearer'
+        api = Api(app)
+        requestChecker = RequestChecker(api)
+
+        assert type(requestChecker.getJwtManager()) == jwt_manager.JWTManager
+
+    def test_JWTcheckRequestLogged(self):
+        app = Flask("test")
+        app.config['JWT_SECRET_KEY'] = "change_me_jwt"
+        app.config['JWT_TOKEN_LOCATION'] = 'headers'
+        app.config['JWT_HEADER_NAME'] = 'Authorization'
+        app.config['JWT_HEADER_TYPE'] = 'Bearer'
+        api = Api(app)
+        requestChecker = RequestChecker(api)
+        jwt_manager.JWTManager(app)
+
+        path = Path('/test', policy=SecurityPolicyEnum.JWT)
+
+        requestChecker.addPath(path, MyResource)
+        with app.app_context():
+            token = create_access_token(identity="toto")
+        header = {"Authorization": "Bearer {0}".format(token)}
+
+        with app.test_client() as client:
+            rv = client.get('/test', headers=header)
+            print(rv.data)
+            assert rv.status_code == 200
+
+    def test_JWTcheckRequestMalformedToken(self):
+        app = Flask("test")
+        app.config['JWT_SECRET_KEY'] = "change_me_jwt"
+        app.config['JWT_TOKEN_LOCATION'] = 'headers'
+        app.config['JWT_HEADER_NAME'] = 'Authorization'
+        app.config['JWT_HEADER_TYPE'] = 'Bearer'
+        api = Api(app)
+        requestChecker = RequestChecker(api)
+        jwt_manager.JWTManager(app)
+
+        path = Path('/test', policy=SecurityPolicyEnum.JWT)
+
+        requestChecker.addPath(path, MyResource)
+        with app.app_context():
+            token = create_access_token(identity="toto")
+        header = {"Authorization": "Bearer {0}".format(token[:-1])}
+
+        with app.test_client() as client:
+            rv = client.get('/test', headers=header)
+            print(rv.data)
             assert rv.status_code == 403
