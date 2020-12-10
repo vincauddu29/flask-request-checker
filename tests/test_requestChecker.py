@@ -1,5 +1,6 @@
 from unittest import TestCase
 from flask import Flask
+from flask_jwt_extended import jwt_manager
 from flask_restful import Api, Resource
 from ..src.requestChecker import RequestChecker, Path, SecurityPolicyEnum
 
@@ -104,3 +105,14 @@ class RequestCheckerTest(TestCase):
         with app.test_client() as client:
             rv = client.get('/test')
             assert rv.status_code == 403
+
+    def test_getJwtManager(self):
+        app = Flask("test")
+        app.config['JWT_SECRET_KEY'] = "change_me_jwt"
+        app.config['JWT_TOKEN_LOCATION'] = 'headers'
+        app.config['JWT_HEADER_NAME'] = 'Authorization'
+        app.config['JWT_HEADER_TYPE'] = 'Bearer'
+        api = Api(app)
+        requestChecker = RequestChecker(api)
+
+        assert type(requestChecker.getJwtManager()) == jwt_manager.JWTManager

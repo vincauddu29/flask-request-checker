@@ -6,7 +6,6 @@ from flask_restful import Api, Resource
 from .MethodsEnum import MethodsEnum
 from .SecurityPolicyEnum import SecurityPolicyEnum
 from .Path import Path
-from flask_login import current_user, AnonymousUserMixin, LoginManager
 
 
 class RequestChecker:
@@ -46,7 +45,7 @@ class RequestChecker:
             if policy == SecurityPolicyEnum.JWT:
                 try:
                     self.__jwtManager.verify_jwt_in_request()
-                except Exception as e:
+                except Exception:
                     abort(403)
         else:
             abort(404)
@@ -66,5 +65,5 @@ class RequestChecker:
             if self.__api is not None:
                 self.__api.add_resource(resource, path.getUrl())
 
-    def getJwtManager(self):
+    def getJwtManager(self) -> JWTManager:
         return self.__jwtManager
