@@ -146,3 +146,25 @@ class RequestCheckerTest(TestCase):
             rv = client.get('/test', headers=header)
             print(rv.data)
             assert rv.status_code == 200
+
+    def test_JWTcheckRequestMalformedToken(self):
+        app = Flask("test")
+        app.config['JWT_SECRET_KEY'] = "change_me_jwt"
+        app.config['JWT_TOKEN_LOCATION'] = 'headers'
+        app.config['JWT_HEADER_NAME'] = 'Authorization'
+        app.config['JWT_HEADER_TYPE'] = 'Bearer'
+        api = Api(app)
+        requestChecker = RequestChecker(api)
+        jwt_manager.JWTManager(app)
+
+        path = Path('/test', policy=SecurityPolicyEnum.JWT)
+
+        requestChecker.addPath(path, MyResource)
+        with app.app_context():
+            token = create_access_token(identity="toto")
+        header = {"Authorization": "Bearer {0}".format(token[:-1])}
+
+        with app.test_client() as client:
+            rv = client.get('/test', headers=header)
+            print(rv.data)
+            assert rv.status_code == 403
